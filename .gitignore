@@ -1,0 +1,40 @@
+# Python-related files
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.venv/
+env/
+jupyter_env/
+
+# Database
+db.sqlite3
+
+# Pickle files
+*.pkl
+
+# Logs
+logs/
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Hidden files and metadata created by JupyterLab
+.jupyter/
+.lab/
+
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Environment variables
+.env
+
+# Node.js
+node_modules/
+
+# Installer files
+*.msi
