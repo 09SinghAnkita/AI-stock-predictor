@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+.env
+logs/*.log
+node_modules/
+frontend/.next/
+frontend/.turbo/

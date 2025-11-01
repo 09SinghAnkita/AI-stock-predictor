@@ -2,10 +2,15 @@ import os
 import pickle
 import numpy as np
 from django.shortcuts import render
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.response import Response
 from sklearn.preprocessing import MinMaxScaler
 import logging
+import json, time, os
+from django.http import HttpResponseBadRequest, StreamingHttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import Allowany
+from .serializer import ChatPayloadSerialize
 
 #Initialize the logger for this module
 logger = logging.getLogger(__name__)
@@ -77,3 +82,37 @@ def model_prediction(request):
         # log the error and return a 500 response for unexpected errors
         logger.error(f"An error occured during prediction : {str(e)}", exc_info = True)
         return Response({'error' : 'Internal server error occured. Please Try again later'}, status=500)
+    
+# chat shell 
+def _sse_btye (data : str) -> bytes:
+     # convert the response in the sse format
+     return f"data:{data}\n\n".encode("utf-8")
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([Allowany])
+def chat_stream(request):
+    ser = ChatPayloadSerialize(data=request.data)
+    ser.is_valid(raise_exception=True)
+    q=ser.validated_data['q']
+
+    token = [
+        f"here is your question {q}",
+        "Here is your response0,"
+        "with the `code`",
+        "ans -1",
+        "ans - 2",
+        "done"
+    ]
+
+    def generator():
+        start_time = time.time()
+        request._ttft = None
+        for chunks in token:
+            if request._ttft is None:
+                request._ttft = int((time.time()-start_time)*1000)
+            yield _sse_btye(chunks)
+            time.sleep(0.25)
+        request._duration_ms = int((time.time()-start_time)*1000) 
+
+    return StreamingHttpResponse(generator(), content_type="text/event-stream", headers={"Cache-Control":"no-cache"})

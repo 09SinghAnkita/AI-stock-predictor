@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
+import logging
+logger = logging.getLogger('access.json')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,7 +30,10 @@ CELERY_RESULT_BACKEND = config('REDIS_BACKEND_URL')
 # Optional: Configure Celery beat for periodic tasks (if needed later)
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
-CORS_ALLOWED_ORIGINS = [ 'http://localhost:3000']
+CORS_ALLOWED_ORIGINS = [ 'http://localhost:3000', 'http://127.0.0.1:3000', ]
+
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
 
 
 
@@ -58,17 +63,18 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'rest_framework',
     'corsheaders',
+    'api',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'stocks_simplified.urls'
@@ -137,6 +143,11 @@ CACHES = {
 }
 
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [],  # dev: no SessionAuthentication → no CSRF
+    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.AllowAny'],
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -158,7 +169,7 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'    
 
 
 LOGGING = {
@@ -171,6 +182,10 @@ LOGGING = {
         'simple' : {
             'format' : '{levelname} {message}',
             'style' : '{', 
+        },
+        'message_only': {                 
+            'format': '{message}',
+            'style': '{',
         },
     },
     'handlers' : {
@@ -185,6 +200,12 @@ LOGGING = {
             'class' : 'logging.StreamHandler',
             'formatter' : 'simple',
         },
+        'access_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'access.log'),
+            'formatter': 'message_only',
+        },
     },
     'loggers' : {
         'django' : {
@@ -196,6 +217,11 @@ LOGGING = {
                'handlers': ['file', 'console'],
                 'level' : 'DEBUG',
                 'propagate' : True,  
+        },
+        'access.json': {                  # ← ADD: used by your middleware
+            'handlers': ['access_file', 'console'],  # or ['file','console'] to merge into django_app.log
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
