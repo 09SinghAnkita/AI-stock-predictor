@@ -1,8 +1,9 @@
 .PHONY: be fe dev logs test clean
 
 be:
-	. venv/bin/activate 2>/dev/null || python -m venv venv && . venv/bin/activate; \
-	pip install -r requirements.txt; \
+	python -m venv venv
+	.\venv\Scripts\activate
+	pip install -r requirements.txt
 	python manage.py runserver 0.0.0.0:8000
 
 fe:
