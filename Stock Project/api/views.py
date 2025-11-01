@@ -9,7 +9,7 @@ import logging
 import json, time, os
 from django.http import HttpResponseBadRequest, StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.permissions import Allowany
+from rest_framework.permissions import AllowAny
 from .serializer import ChatPayloadSerialize
 
 #Initialize the logger for this module
@@ -90,7 +90,7 @@ def _sse_btye (data : str) -> bytes:
 
 @api_view(['POST'])
 @authentication_classes([])
-@permission_classes([Allowany])
+@permission_classes([AllowAny])
 def chat_stream(request):
     ser = ChatPayloadSerialize(data=request.data)
     ser.is_valid(raise_exception=True)
