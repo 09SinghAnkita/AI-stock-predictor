@@ -23,5 +23,5 @@ cd ..
 python manage.py migrate
 
 echo "✅ Setup complete!"
-echo "➡️  Run: python manage.py runserver 0.0.0.0:8000"
+echo "➡️  Run: python manage.py runserver 0.0.0.0:8001"
 echo "➡️  And: cd frontend && npm run dev"

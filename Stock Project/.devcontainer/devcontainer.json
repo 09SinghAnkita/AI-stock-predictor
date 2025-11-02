@@ -5,7 +5,7 @@
     "ghcr.io/devcontainers/features/node:1": {}
   },
   "postCreateCommand": "pip install -r requirements.txt || true && npm install || true",
-  "forwardPorts": [8000, 3000],
+  "forwardPorts": [8001, 3000],
   "customizations": {
     "vscode": {
       "extensions": [

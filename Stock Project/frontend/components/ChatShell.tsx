@@ -51,7 +51,7 @@ export default function ChatShell() {
     try {
       T.emit("send", { q });
 
-      const res = await fetch("http://localhost:8000/api/chat/stream/", {
+      const res = await fetch("http://localhost:8001/api/chat/stream/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q }),
