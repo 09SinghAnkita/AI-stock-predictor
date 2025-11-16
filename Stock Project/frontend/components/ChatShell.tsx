@@ -1,21 +1,14 @@
 // app/components/ChatShell.tsx
 "use client";
 
-// FIXES:
-// - Define correct state types (messages are objects, not string[])
-// - Define and use input/busy state (they were undefined)
-// - Use AbortController via ref
-// - Use ReadableStream + TextDecoder (NOT res.json())
-// - Parse SSE "data: ..." packets
-// - Render Message components
-
 import { useEffect, useRef, useState } from "react";
 import Message from "./Message";
 
 type Msg = { id: string; role: "user" | "assistant"; text: string };
 
 const T = {
-  emit: (name: string, data?: any) => console.log("[telemetry]", name, data ?? {}),
+  emit: (name: string, data?: any) =>
+    console.log("[telemetry]", name, data ?? {}),
 };
 
 export default function ChatShell() {
@@ -28,6 +21,28 @@ export default function ChatShell() {
   useEffect(() => {
     boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight });
   }, [messages]);
+
+  const getApiBase = () => {
+    // Default for local dev
+    let apiBase = "http://localhost:8001";
+
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+
+      // Localhost → keep default http://localhost:8001
+      if (
+        origin.includes("localhost:3000") ||
+        origin.includes("127.0.0.1:3000")
+      ) {
+        apiBase = "http://localhost:8001";
+      } else {
+        // GitHub Codespaces pattern:  ...-3000.app.github.dev → ...-8001.app.github.dev
+        apiBase = origin.replace("-3000", "-8001");
+      }
+    }
+
+    return apiBase;
+  };
 
   const onSend = async () => {
     const q = input.trim();
@@ -51,12 +66,18 @@ export default function ChatShell() {
     try {
       T.emit("send", { q });
 
-      const res = await fetch("http://localhost:8001/api/chat/stream/", {
+      const apiBase = getApiBase();
+
+      const res = await fetch(`${apiBase}/api/chat/stream/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q }),
         signal: ctrl.signal,
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
       if (!res.body) throw new Error("No response body");
 
       const reader = res.body.getReader();
@@ -70,18 +91,21 @@ export default function ChatShell() {
 
         buffer += decoder.decode(value, { stream: true });
 
-        // Handle SSE: packets separated by blank line
         const parts = buffer.split("\n\n");
         buffer = parts.pop() ?? "";
 
         for (const pkt of parts) {
-          const line = pkt.replace(/^data:\s?/, "");
+          const line = pkt.replace(/^data:\s?/, ""); // strip "data:"
           if (first) {
             first = false;
-            T.emit("first_token", { ttft_ms: Math.round(performance.now() - start) });
+            T.emit("first_token", {
+              ttft_ms: Math.round(performance.now() - start),
+            });
           }
           setMessages((m) =>
-            m.map((it) => (it.id === aid ? { ...it, text: it.text + line } : it))
+            m.map((it) =>
+              it.id === aid ? { ...it, text: it.text + line } : it
+            )
           );
         }
       }
@@ -95,7 +119,13 @@ export default function ChatShell() {
         setMessages((m) =>
           m.map((it) =>
             it.role === "assistant"
-              ? { ...it, text: it.text + "\n\n*Error: stream ended unexpectedly.*" }
+              ? {
+                  ...it,
+                  text:
+                    it.text + "\n\n*Error: stream ended unexpectedly (" +
+                    String(err?.message || err) +
+                    ").*",
+                }
               : it
           )
         );
@@ -112,7 +142,10 @@ export default function ChatShell() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-3">
-      <div ref={boxRef} className="h-[60vh] overflow-y-auto space-y-2 p-3 border rounded-2xl">
+      <div
+        ref={boxRef}
+        className="h-[60vh] overflow-y-auto space-y-2 p-3 border rounded-2xl"
+      >
         {messages.map((m) => (
           <Message key={m.id} role={m.role} text={m.text} />
         ))}
@@ -130,7 +163,11 @@ export default function ChatShell() {
         <button onClick={onSend} disabled={busy} className="px-3 py-2 rounded-xl border">
           {busy ? "Streaming…" : "Send"}
         </button>
-        <button onClick={onAbort} disabled={!busy} className="px-3 py-2 rounded-xl border">
+        <button
+          onClick={onAbort}
+          disabled={!busy}
+          className="px-3 py-2 rounded-xl border"
+        >
           Abort
         </button>
       </div>

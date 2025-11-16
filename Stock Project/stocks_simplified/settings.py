@@ -30,8 +30,6 @@ CELERY_RESULT_BACKEND = config('REDIS_BACKEND_URL')
 # Optional: Configure Celery beat for periodic tasks (if needed later)
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
-CORS_ALLOWED_ORIGINS = [ 'http://localhost:3000', 'http://127.0.0.1:3000', ]
-
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
@@ -46,7 +44,18 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+if DEBUG:
+    # Dev: allow everything (local + Codespaces)
+    CORS_ALLOW_ALL_ORIGINS = True
+    ALLOWED_HOSTS = ["*"]          # so Codespaces host is accepted
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://localhost:3000",
+        "https://127.0.0.1:3000",
+    ]
+    ALLOWED_HOSTS = ["your-prod-domain.com"]
 
 
 # Application definition
